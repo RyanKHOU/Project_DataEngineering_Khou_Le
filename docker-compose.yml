@@ -1,43 +1,39 @@
 version: '3.8'
 
 services:
-  selenium-chrome:
-    image: selenium/standalone-chrome:latest
-    build:
-      context: .
-      dockerfile: Scrapy/dockerfile_scraper_selenium
-    ports:
-      - "4444:4444"
-    shm_size: 2g
-  
   mongodb:
-    image: mongo
-    container_name: mongo_container
+    image: mongo:latest
+    container_name: mongodb
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_DB_DATABASE=my_mongo
-    depends_on:
-      - selenium-chrome
     volumes:
-      - data_from_scrap:/tmp
-    command: mongoimport --db my_mongo --collection my_collection < /tmp/data.json
+      - mongo_data:/data/db
+
+  scraper:
+    build: ./scraper
+    container_name: webscraper
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+    volumes:
+      - ./app/static/images:/app/images
+      - tmp_data:/shared
 
   dash_app:
     build:
-      context: .
-      dockerfile: API/dockerfile_dash_app
-    container_name: dash_app_container
+      context: ./app
+      dockerfile: Dockerfile_dash_app
+    volumes:
+      - tmp_data:/shared
     ports:
       - "8050:8050"
     depends_on:
       - mongodb
+    restart: unless-stopped
     environment:
-      MONGO_USERNAME: user
-      MONGO_PASSWORD: user
-      MONGO_DB_DATABASE: my_mongo
-      MONGO_PORT: 27017
-      
-volumes:
-  data_from_scrap:
+      - MONGO_URI=mongodb://mongodb:27017
 
+volumes:
+  mongo_data:
+  tmp_data: 
