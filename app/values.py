@@ -1,20 +1,45 @@
-import json
+import os, pymongo, json, pandas as pd
+from bson import json_util
 import plotly.express as px
 import plotly.graph_objs as go
 
-with open('data.json', 'r') as file:
-    data = json.load(file)
-    
-    
+# Connexion à MongoDB (ajustez l'URI si nécessaire)
+client = pymongo.MongoClient("mongodb://mongodb:27017/")
+
+# Sélectionner la base de données
+db_name = "scraping_db"
+db = client[db_name]
+
+# Récupérer toutes les collections de la base de données
+collection = db["equipes"]
+
+# Créer un dictionnaire pour stocker toutes les données
+data = json.loads(json_util.dumps((collection.find())))
 
 # Initialisation des variables pour les graphiques
 equipes = [team['Equipe'] for team in data]
-gains = [int(team['Gain'].replace(" ", "")) for team in data]
+gains = [int(team['Gains'].replace(" ", "")) for team in data]
 
 # Création du graphique des gains
 equipes_gains_sorted, gains_sorted = zip(*sorted(zip(equipes, gains), key=lambda x: x[1]))
-fig_gains = px.bar(x=equipes_gains_sorted, y=gains_sorted, labels={'x': 'Équipes', 'y': 'Gains'}, title='Histogramme des Gains par Équipe')
 
+# Création du DataFrame
+df_gains = pd.DataFrame({
+    "Equipe": equipes_gains_sorted,
+    "Gains": gains_sorted
+})
+
+# Création du graphique
+fig_gains = px.bar(
+    df_gains,
+    x="Equipe",
+    y="Gains",
+    labels={
+        "Equipe": "Équipes",
+        "Gains": "Gains"
+    },
+    title="Histogramme des Gains par Équipe"
+)
 # Calcul des réussites et échecs 
 reussites = []
 echecs = []
