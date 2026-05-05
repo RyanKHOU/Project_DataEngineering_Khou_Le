@@ -1,45 +1,25 @@
 # DataEngineering Projet étude des performances des équipes ayant participé à Fort Boyard de 2003 à 2023
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![Scrapy](https://img.shields.io/badge/Scrapy-%2314D08C.svg?style=for-the-badge&logo=scrapy&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-239120?style=for-the-badge&logo=plotly&logoColor=white)
 ![Dash](https://img.shields.io/badge/dash-008DE4?style=for-the-badge&logo=dash&logoColor=white)
 
+
 ## Description
-L'objectif de ce projet est d'étudier les performances des équipes participant à la mythique émission TV Fort Boyard. 
+L'objectif de ce projet est d'étudier les performances des équipes participant à la mythique émission TV Fort Boyard, sous la forme d'une application complète conçue pour collecter, traiter et visualiser des données sur un format type dashboard.
 
-Pour cela nous récupérons les informations par WebScraping avec les librairies Selenium et Scrapy sur le site [https://o.fortboyard.tv/gains.php#parsaison](https://o.fortboyard.tv/gains.php#parsaison), et nous les compilons dans un fichier json.  
+Pour cela nous récupérons les informations par webScraping depuis le site [https://o.fortboyard.tv/gains.php#parsaison](https://o.fortboyard.tv/gains.php#parsaison).
 
-Ensuite ce fichier json est importé dans une base MongoDB pour avoir un meilleur contrôle sur l'accès des données.
 
-Enfin nous extrayons les données qui nous intéressent et les visualisons avec la librairie plot dans un dashboard implémentée grâce à la librairie dash.
+## Stack technique
+* Frontend: Dash, Plotly
+* Backend: Python
+* Base de données : MongoDB
+* Web scraping: BeautifulSoup, Requests
+* Utilitaires : PyMongo, GridFS
+* Déploiement : Docker, Docker Compose
 
-Chaque étape du projet est isolée dans un container Docker.
-
-Le projet est managé grâce à un docker-compose.yml.
-
-Dans la branche principale de github nous trouvons le docker-compose permettant de lancer et de gérer l'ensemble projet en déployant les fichiers Dockerfile de chaque container.
-
-Chaque container est associé à un dossier dans ce dépôt github :
-
-Le dossier API contient :
-
-* Les programmes permettant de lancer le dashboard via main.py et de monter l'architecture du dashboard avec values.py et visualization.py (plus d'informations dans la rubrique **Programmes python**)
-
-* Le fichier requirement.txt contenant les librairies nécessaires  au fonctionnement des programmes.
-
-Le dossier DATABASE contient :
-
-* le fichier qui est généré par scraping et qui sera inséré dans une base de données mongoDB (l'opération est automatisée avec docker-compose)
-
-Le dossier Scrapy contient :
-
-* Le programme permettant de scraper le site internet
-
-* Son fichier de dépendance 
-
-* Le dockerfile permettant de préparer l'environnement nécessaire au fonctionnement du programme.
 
 ## Pré-requis
 Ce projet nécessite l'utilisation de Docker. S'il n'est pas déjà téléchargé :
@@ -79,31 +59,48 @@ docker-compose up -d
 Ensuite il faut attendre que le container dash_app soit actif. Quand c'est le cas il suffit de se rendre sur l'adresse IP https://127.0.0.1:8050.
 
 ## Guide d'utilisation
+### Structure du projet
+
+```markdown
+app/
+|---- static
+        |---- images
+        |---- main.css
+|---- Dockerfile_dash_app
+|---- main.py
+|---- requirements.txt
+|---- values.py
+|---- visualization.py
+|---- wait-for-scrape.sh
+scraper/
+|---- data_collecting.py
+|---- Dockerfile
+|---- requirements.txt
+utils/
+|---- delete_data.py
+|---- view_data.py
+docker-compose.yml
+README.md
+```
 
 ### Programmes python
 
-* __data_collectinng.py__ : scrape les données depuis le site [https://o.fortboyard.tv/gains.php#parsaison](https://o.fortboyard.tv/gains.php#parsaison) et génère un fichier json contenant toutes les informations récupérées.
+* __scraper/data_collecting.py__ : scrape les données depuis le site [https://o.fortboyard.tv/gains.php#parsaison](https://o.fortboyard.tv/gains.php#parsaison) et génère un fichier json contenant toutes les informations récupérées.
 
-* __values.py__ : récupère l'ensemble des données depuis le container dont l'image est une base de données mongodb. Ce fichier de code contient également les fonctions essentiels pour faire un premier traitement des données comme la fonction *time_to_seconds()* ou pour déclarer des histogrammes avec la variable *fig_time*.
+* __app/values.py__ : récupère l'ensemble des données depuis le container dont l'image est une base de données mongodb. Ce fichier de code contient également les fonctions essentielles pour faire un premier traitement des données comme la fonction *time_to_seconds()* ou pour déclarer des histogrammes avec la variable *fig_time*.
 
-* __visualization.py__ : interface permettant d'implémenter le framework de l'application via des fonctions implémentant les graphiques, les boutons, les sliders, l'affichage des images et leurs interactions.
+* __app/visualization.py__ : interface permettant d'implémenter le framework de l'application via des fonctions implémentant les graphiques, les boutons, les sliders, l'affichage des images et leurs interactions.
 
-* __main.py__ : permet de démarrer le dashboard en appelant la variable *app* implémentées dans **visualization.py** contenant toute l'architecture du dashboard.
+* __app/main.py__ : permet de démarrer le dashboard en appelant la variable *app* implémentées dans **visualization.py** contenant toute l'architecture du dashboard.
 
-### Dockerfiles
+#### Remarque
+
+__wait-for-scrape.sh__ : Le dashboard ne s’affiche qu’une fois le scraping du site web terminé. Ce script sert donc à vérifier l’état d’avancement du scraping en envoyant des requêtes au service Docker chargé de l’exécuter.
+
 
 ### docker-compose
 
 Le fichier docker-compose.yml créé 3 services : 
-
-- **selenium-chrome** : il permet de lancer le container permettant de scraper les données sur le site d'étude. Il s'appuie sur une image *selenium-chrome* qui, par défaut utilise le port 4444.
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pour plus d'informations :
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[GitHub de l'image](https://github.com/SeleniumHQ/docker-selenium)
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Dépôt docker de l'image](https://hub.docker.com/r/selenium/standalone-chrome)
-
 
 - **mongodb** : il permet de stocker les données dans une base de données. Il s'appuie sur une image mongo qui utilise par défaut le port 27017.
 
@@ -111,8 +108,37 @@ Le fichier docker-compose.yml créé 3 services :
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Dépôt docker de l'image](https://hub.docker.com/_/mongo)
 
+- **scraper** : collecte des données et stockage dans MongoDB. Par ailleurs, le dossier avec les photos des équipes est créé en local pour que le développeur ait une trace des dernières images scrapées et pour faciliter le développement de nouvelles features liées aux images si besoin.
+
 
 - **dash_app** : il permet d'afficher à l'écran le dashboard. Etant donné qu'il utilise un framework dash, le dashboard est accessible via le port 8050.
+
+### Volumes
+* mongo_data : volume dédié à la persistance des données MongoDB.
+* tmp_data : volume partagé entre le scraper et l’application Dash pour que le script **wait-for-scrape.sh** puisse notifier le dashboard de la fin du scraping.
+
+### utils
+Ce répertoire contient quelques fonctions pratiques lors du développement pour voir le contenu de la base de données ou la supprimer entièrement. Pour les lancer, il suffit d'ouvrir un nouveau terminal à la racine du projet et de faire ``python [script_à_utiliser]``.
+
+
+## Contribution
+
+Pour contribuer au projet, veuillez suivre les étapes suivantes :
+
+1. Forkez le dépôt avec `git fork`
+2. Créez une nouvelle branche avec `git branch`
+3. Apportez vos modifications et validez-les avec `git commit`
+4. Poussez les modifications vers le dépôt distant avec `git push`
+5. Créez une pull request via l’interface GitHub
+
+## Licence
+
+Ce projet est sous licence MIT.
+
+## Contact
+
+Pour toute question ou demande, veuillez nous contacter à van-minhchristophe.le@edu.esiee.fr ou à ryan.khou@edu.esiee.fr.
+
 
 ## Contributeurs
 
